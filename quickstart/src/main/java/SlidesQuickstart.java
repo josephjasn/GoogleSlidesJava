@@ -25,14 +25,25 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.slides.v1.Slides;
 import com.google.api.services.slides.v1.SlidesScopes;
+import com.google.api.services.slides.v1.model.AffineTransform;
 import com.google.api.services.slides.v1.model.BatchUpdatePresentationRequest;
 import com.google.api.services.slides.v1.model.BatchUpdatePresentationResponse;
+import com.google.api.services.slides.v1.model.CreateImageRequest;
+import com.google.api.services.slides.v1.model.CreateImageResponse;
+import com.google.api.services.slides.v1.model.CreateParagraphBulletsRequest;
+import com.google.api.services.slides.v1.model.CreateShapeRequest;
+import com.google.api.services.slides.v1.model.CreateShapeResponse;
 import com.google.api.services.slides.v1.model.CreateSlideRequest;
 import com.google.api.services.slides.v1.model.CreateSlideResponse;
+import com.google.api.services.slides.v1.model.Dimension;
+import com.google.api.services.slides.v1.model.InsertTextRequest;
 import com.google.api.services.slides.v1.model.LayoutReference;
 import com.google.api.services.slides.v1.model.Page;
+import com.google.api.services.slides.v1.model.PageElementProperties;
 import com.google.api.services.slides.v1.model.Presentation;
+import com.google.api.services.slides.v1.model.Range;
 import com.google.api.services.slides.v1.model.Request;
+import com.google.api.services.slides.v1.model.Size;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -110,10 +121,80 @@ public class SlidesQuickstart {
      CreateSlideResponse createSlideResponse = response1.getReplies().get(0).getCreateSlide();
      System.out.println("Created slide with ID: " + createSlideResponse.getObjectId());
      
-     // print elements of the created presentation
-     Presentation response = service.presentations().get(presentation.getPresentationId()).execute();
      
-     List<Page> slides = response.getSlides();
+     //add images to the slide
+     String imageUrl = "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png";
+
+  // Create a new image, using the supplied object ID, with content downloaded from imageUrl.
+  List<Request> requests1 = new ArrayList<>();
+  String imageId = "MyImageId_01";
+  Dimension emu4M = new Dimension().setMagnitude(4000000.0).setUnit("EMU");
+  requests1.add(new Request()
+          .setCreateImage(new CreateImageRequest()
+                  .setObjectId(imageId)
+                  .setUrl(imageUrl)
+                  .setElementProperties(new PageElementProperties()
+                          .setPageObjectId(slideId)
+                          .setSize(new Size()
+                                  .setHeight(emu4M)
+                                  .setWidth(emu4M))
+                          .setTransform(new AffineTransform()
+                                  .setScaleX(1.0)
+                                  .setScaleY(1.0)
+                                  .setTranslateX(100000.0)
+                                  .setTranslateY(100000.0)
+                                  .setUnit("EMU")))));
+
+  // Execute the request.
+  BatchUpdatePresentationRequest body1 =
+          new BatchUpdatePresentationRequest().setRequests(requests1);
+  BatchUpdatePresentationResponse response =
+		  service.presentations().batchUpdate(presentation.getPresentationId(), body1).execute();
+  CreateImageResponse createImageResponse = response.getReplies().get(0).getCreateImage();
+  System.out.println("Created image with ID: " + createImageResponse.getObjectId());
+     
+  
+//Create a new square text box, using a supplied object ID.
+List<Request> requeststextbx = new ArrayList<>();
+String textBoxId = "MyTextBox_01";
+Dimension pt350 = new Dimension().setMagnitude(350.0).setUnit("PT");
+requeststextbx.add(new Request()
+       .setCreateShape(new CreateShapeRequest()
+               .setObjectId(textBoxId)
+               .setShapeType("TEXT_BOX")
+               .setElementProperties(new PageElementProperties()
+                       .setPageObjectId(slideId)
+                       .setSize(new Size()
+                               .setHeight(pt350)
+                               .setWidth(pt350))
+                       .setTransform(new AffineTransform()
+                               .setScaleX(1.0)
+                               .setScaleY(1.0)
+                               .setTranslateX(350.0)
+                               .setTranslateY(100.0)
+                               .setUnit("PT")))));
+
+//Insert text into the box, using the object ID given to it.
+requeststextbx.add(new Request()
+       .setInsertText(new InsertTextRequest()
+               .setObjectId(textBoxId)
+               .setInsertionIndex(0)
+               .setText("New Box Text Inserted")));
+
+//Execute the requests.
+BatchUpdatePresentationRequest bodytextbx =
+       new BatchUpdatePresentationRequest().setRequests(requeststextbx);
+BatchUpdatePresentationResponse responsetextbx =
+       service.presentations().batchUpdate(presentation.getPresentationId(), bodytextbx).execute();
+CreateShapeResponse createShapeResponsetextbx = responsetextbx.getReplies().get(0).getCreateShape();
+System.out.println("Created textbox with ID: " + createShapeResponsetextbx.getObjectId());
+
+
+
+     // print elements of the created presentation
+     Presentation response2 = service.presentations().get(presentation.getPresentationId()).execute();
+     
+     List<Page> slides = response2.getSlides();
 
      System.out.printf("The presentation contains %s slides:\n", slides.size());
      for (int i = 0; i < slides.size(); ++i) {
